@@ -21,7 +21,14 @@ interface Props {
 	orientation: LoopOrientation
 }
 
-const STATION_RADIUS = 12;
+// Per-orientation visual scale. On desktop (landscape) the loop is large
+// and the original 12 px station radius / 20 user-unit stroke read fine;
+// on phones (portrait) we shrink everything so the diagram and its labels
+// stay legible inside a narrow viewport.
+const VISUAL_SCALE = {
+	landscape: { radius: 12, stroke: 20, ringOffset: 10, pingInset: 2, pingMax: 6 },
+	portrait: { radius: 8, stroke: 10, ringOffset: 6, pingInset: 1, pingMax: 4 },
+} as const;
 
 /**
  * Anchor length (along the perimeter) for Ōsaki (JY24) — counted from the top
@@ -99,25 +106,38 @@ function layoutForAnchor(anchor: SideSegment["labelAnchor"]): LabelLayout {
 function StationLabel({
 	station,
 	placement,
+	compact,
+	anchorOverride,
 }: {
 	station: Station
 	placement: StationPlacement
+	/** When true, use the smaller label sizing used on phones. */
+	compact?: boolean
+	/**
+	 * Optional override for the `labelAnchor` used to lay out the card.
+	 * `StationNode` passes this when it has flipped the anchor (e.g.
+	 * to force the diagonal-bevel stations to read horizontally like
+	 * the matching left/right edges on phones). When omitted, we fall
+	 * back to the placement's authored anchor.
+	 */
+	anchorOverride?: SideSegment["labelAnchor"]
 }): JSX.Element {
-	const layout = layoutForAnchor(placement.labelAnchor);
+	const layout = layoutForAnchor(anchorOverride ?? placement.labelAnchor);
 
 	const isRow = !layout.verticalText;
-	const gap = isRow ? "gap-1.5" : "gap-1";
+	const gap = isRow ? (compact ? "gap-1" : "gap-1.5") : (compact ? "gap-0.5" : "gap-1");
 
 	// JY + number badge, styled like the legacy `Player.tsx` badge: "JY" on
 	// top, station number on the bottom. Both pieces read upright, regardless
-	// of which edge the pill sits on.
+	// of which edge the pill sits on. On phones the badge shrinks so the
+	// labels don't crowd the narrow loop perimeter.
 	const badge = (
 		<span
-			className="inline-flex shrink-0 flex-col items-center justify-center rounded-md border border-[#7BAB4F] bg-white/95 px-1 py-0.5 leading-none tabular-nums text-stone-900 dark:border-zinc-200 dark:bg-zinc-900/95 dark:text-zinc-50"
-			style={{ borderWidth: "2px" }}
+			className={`inline-flex shrink-0 flex-col items-center justify-center rounded-md border border-[#7BAB4F] bg-white/95 ${compact ? "px-0.5 py-px" : "px-1 py-0.5"} leading-none tabular-nums text-stone-900 dark:border-zinc-200 dark:bg-zinc-900/95 dark:text-zinc-50`}
+			style={{ borderWidth: compact ? "1.5px" : "2px" }}
 		>
-			<span className="font-mono text-[8px] font-bold tracking-wider leading-none">JY</span>
-			<span className="font-mono text-[12px] font-bold leading-none tabular-nums">
+			<span className={`font-mono ${compact ? "text-[6px]" : "text-[8px]"} font-bold tracking-wider leading-none`}>JY</span>
+			<span className={`font-mono ${compact ? "text-[9px]" : "text-[12px]"} font-bold leading-none tabular-nums`}>
 				{station.jy}
 			</span>
 		</span>
@@ -140,9 +160,9 @@ function StationLabel({
 					? "items-start"
 					: "items-center";
 		text = (
-			<span className={`flex flex-row-reverse gap-1 ${crossClasses}`}>
+			<span className={`flex flex-row-reverse ${compact ? "gap-0.5" : "gap-1"} ${crossClasses}`}>
 				<span
-					className="block font-semibold text-[12px] leading-[1.05] text-zinc-700 dark:text-zinc-200"
+					className={`block font-semibold ${compact ? "text-[9px]" : "text-[12px]"} leading-[1.05] text-zinc-700 dark:text-zinc-200`}
 					style={{
 						writingMode: "vertical-rl",
 						textOrientation: "upright",
@@ -151,7 +171,7 @@ function StationLabel({
 					{station.kanji}
 				</span>
 				<span
-					className="block text-[10px] leading-[1.05] text-zinc-500 dark:text-zinc-400"
+					className={`block ${compact ? "text-[8px]" : "text-[10px]"} leading-[1.05] text-zinc-500 dark:text-zinc-400`}
 					style={{
 						writingMode: "vertical-rl",
 						textOrientation: "sideways",
@@ -165,11 +185,11 @@ function StationLabel({
 	else {
 		const align = layout.textAlign === "right" ? "text-right items-end" : "text-left items-start";
 		text = (
-			<span className={`flex flex-col gap-0.5 text-[10px] leading-tight text-zinc-700 dark:text-zinc-200 ${align}`}>
+			<span className={`flex flex-col gap-0.5 ${compact ? "text-[8px]" : "text-[10px]"} leading-tight text-zinc-700 dark:text-zinc-200 ${align}`}>
 				<span className="block whitespace-nowrap font-semibold">
 					{station.kanji}
 				</span>
-				<span className="block whitespace-nowrap text-[9px] text-zinc-500 dark:text-zinc-400">
+				<span className={`block whitespace-nowrap ${compact ? "text-[7px]" : "text-[9px]"} text-zinc-500 dark:text-zinc-400`}>
 					{station.name}
 				</span>
 			</span>
@@ -193,11 +213,12 @@ function StationLabel({
 	})();
 
 	const containerAlign = layout.verticalText ? "items-stretch" : "items-center";
+	const padding = compact ? "px-1 py-0.5" : "px-1.5 py-1";
 
 	return (
 		<div
 			aria-label={`Select JY${station.jy} ${station.name}`}
-			className={`flex ${gap} rounded-md px-1.5 py-1 shadow-sm backdrop-blur transition dark:bg-zinc-900/90 dark:hover:bg-zinc-800 ${containerAlign}`}
+			className={`flex ${gap} rounded-md ${padding} shadow-sm backdrop-blur transition dark:bg-zinc-900/90 dark:hover:bg-zinc-800 ${containerAlign}`}
 			style={{
 				width: "max-content",
 				flexDirection: isRow ? "row" : "column",
@@ -213,36 +234,52 @@ function StationNode({
 	placement,
 	isActive,
 	isPlaying,
+	scale,
 	onSelect,
 }: {
 	station: Station
 	placement: StationPlacement
 	isActive: boolean
 	isPlaying: boolean
+	scale: { radius: number, stroke: number, ringOffset: number, pingInset: number, pingMax: number }
 	onSelect: () => void
 }): JSX.Element {
+	const compact = scale.radius < 12;
+	const radius = scale.radius;
+	const labelGap = compact ? 2 : 8;
+	// The label card sits just outside the perimeter. On the two diagonal
+	// bevels (top-left and bottom-right) we want the pills to read
+	// horizontally — like the labels on the matching left/right edges —
+	// instead of vertically. We detect the bevels by their `side` field,
+	// which the geometry helper tags as `topLeftBevel` /
+	// `bottomRightBevel`.
+	let anchor: SideSegment["labelAnchor"] = placement.labelAnchor;
+	if (compact && placement.side === "topLeftBevel")
+		anchor = "left";
+	if (compact && placement.side === "bottomRightBevel")
+		anchor = "right";
 	// Position the label card relative to the station circle based on the
 	// side it sits on. The wrapper sits just outside the circle; the pill
 	// inside is rotated for the top/bottom edges so it reads along the side.
 	const wrapperStyle: CSSProperties = {};
-	if (placement.labelAnchor === "right") {
-		wrapperStyle.left = "calc(100% + 8px)";
+	if (anchor === "right") {
+		wrapperStyle.left = `calc(100% + ${labelGap}px)`;
 		wrapperStyle.top = "50%";
 		wrapperStyle.transform = "translateY(-50%)";
 	}
-	else if (placement.labelAnchor === "left") {
-		wrapperStyle.right = "calc(100% + 8px)";
+	else if (anchor === "left") {
+		wrapperStyle.right = `calc(100% + ${labelGap}px)`;
 		wrapperStyle.top = "50%";
 		wrapperStyle.transform = "translateY(-50%)";
 	}
-	else if (placement.labelAnchor === "above") {
+	else if (anchor === "above") {
 		wrapperStyle.left = "50%";
-		wrapperStyle.bottom = "calc(100% + 8px)";
+		wrapperStyle.bottom = `calc(100% + ${labelGap}px)`;
 		wrapperStyle.transform = "translateX(-50%)";
 	}
 	else {
 		wrapperStyle.left = "50%";
-		wrapperStyle.top = "calc(100% + 8px)";
+		wrapperStyle.top = `calc(100% + ${labelGap}px)`;
 		wrapperStyle.transform = "translateX(-50%)";
 	}
 
@@ -253,10 +290,10 @@ function StationNode({
 			aria-label={`JY${station.jy} ${station.name}`}
 			className={`group cursor-pointer absolute z-10 flex items-center justify-center rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#DC7970]/40 ${isActive ? "scale-110" : "hover:scale-105"}`}
 			style={{
-				width: STATION_RADIUS * 2,
-				height: STATION_RADIUS * 2,
-				left: `calc(${placement.x}% - ${STATION_RADIUS}px)`,
-				top: `calc(${placement.y}% - ${STATION_RADIUS}px)`,
+				width: radius * 2,
+				height: radius * 2,
+				left: `calc(${placement.x}% - ${radius}px)`,
+				top: `calc(${placement.y}% - ${radius}px)`,
 			}}
 		>
 			{isActive && isPlaying && (
@@ -269,7 +306,12 @@ function StationNode({
 				className="absolute flex items-center"
 				style={wrapperStyle}
 			>
-				<StationLabel station={station} placement={placement} />
+				<StationLabel
+					station={station}
+					placement={placement}
+					compact={compact}
+					anchorOverride={anchor}
+				/>
 			</span>
 		</button>
 	);
@@ -281,20 +323,30 @@ function buildEdgePaths(geometry: LoopGeometry) {
 	//    P4(topLeft-bevel-end), P5(bottom-left), P6(bottomRight-bevel-start),
 	//    P7(bottomRight-bevel-end)]
 	//
-	// Bevel edges: P1→P2 (small top-right), P3→P4 (large top-left), P6→P7 (large bottom-right)
-	// Straight edges: P2→P3 (top), P4→P5 (left), P5→P6 (bottom)
+	// We group edges by which path renders them so the outline stroke is
+	// drawn exactly once per segment — and so every edge gets the same
+	// on-screen stroke width via `vectorEffect="non-scaling-stroke"`. The
+	// shared `outline` path used to redundantly stroke the entire polygon
+	// (including the right edge, which neither `straightD` nor `bevelD`
+	// cover), so we drop its `stroke` and instead emit a dedicated
+	// `right` edge here.
 	const polygon = geometry.polygon;
 	const bevelD = edgesFromIndices(polygon, [
 		[0, 1],
 		[2, 3],
 		[5, 6],
 	]);
-	const straightD = edgesFromIndices(polygon, [
+	// Straight edges plus the right edge — the right edge would otherwise
+	// fall through to the polygonal outline and lose the
+	// `non-scaling-stroke` effect, making it visibly thinner than the
+	// other three sides on narrow viewports.
+	const rightAndStraightD = edgesFromIndices(polygon, [
+		[6, 0],
 		[1, 2],
 		[3, 4],
 		[4, 5],
 	]);
-	return { bevelD, straightD };
+	return { bevelD, rightAndStraightD };
 }
 
 function edgesFromIndices(
@@ -325,26 +377,29 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 
 	const outline = polygonPath(geometry);
 	const aspectRatio = geometry.width / geometry.height;
-	const { bevelD, straightD } = useMemo(() => buildEdgePaths(geometry), [geometry]);
+	const { bevelD, rightAndStraightD } = useMemo(() => buildEdgePaths(geometry), [geometry]);
+	const scale = VISUAL_SCALE[orientation];
 
 	// Container sizing strategy depends on orientation:
 	//   - landscape (PC / phone in landscape): lead with width, let the
 	//     aspect ratio derive the height, and clamp it to the parent's
 	//     height so the diagram never overflows vertically.
-	//   - portrait (phone in portrait): the loop is tall and narrow, so
-	//     we size it against the viewport directly. `100dvh` accounts for
-	//     the mobile browser's dynamic UI (address bar etc.). The
-	//     `min(...)` clamp keeps the loop within both the available
-	//     width and the height budget (header ≈ 60px, player row ≈
-	//     240px). Using `dvh` here is what makes the diagram actually
-	//     fit on a phone — earlier flex-based sizing grew past the
-	//     viewport because the parent's `min-h-full` expanded to fit
-	//     the loop's preferred size.
+	//   - portrait (phone in portrait): lead with width (`100%` of the
+	//     column) and clamp height to the remaining vertical space below
+	//     the header + mobile player. With the geometry's ≈0.75 aspect
+	//     ratio this gives the loop a comfortable size on a typical
+	//     phone screen (≈390×520 on 390×844 viewports).
 	const containerStyle: CSSProperties = orientation === "portrait"
 		? {
 			aspectRatio,
-			width: "min(100%, calc((100dvh - 320px) * 0.45))",
+			// On phones the loop needs to be narrower than the viewport so
+			// station labels (which sit just outside the perimeter to the
+			// left and right) can render fully without being clipped. The
+			// `160px` margin reserves ~80px of breathing room on each side
+			// for the label cards.
+			width: "calc(100% - 160px)",
 			maxWidth: "100%",
+			maxHeight: "calc(100dvh - 220px)",
 		}
 		: { aspectRatio, width: "100%", maxHeight: "100%" };
 
@@ -370,21 +425,20 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 				<path
 					d={outline}
 					fill="url(#loop-fill)"
-					stroke="#7BAB4F"
-					strokeWidth={20}
+					stroke="none"
 					strokeLinejoin="round"
 					strokeLinecap="round"
 				/>
-				{/* Render the straight edges and the bevel edges as two separate
-					 paths. Using `vectorEffect="non-scaling-stroke"` on both keeps
-					 their on-screen stroke width consistent regardless of the
-					 SVG's current scale, so the diagonal bevels no longer look
-					 thicker than the horizontal/vertical edges next to them. */}
+				{/* Render the right edge together with the rest of the straight
+					 edges via a single path. Using `vectorEffect="non-scaling-stroke"`
+					 keeps the on-screen stroke width consistent regardless of
+					 the SVG's current scale, so the right edge no longer looks
+					 thinner than the other three sides on narrow viewports. */}
 				<path
-					d={straightD}
+					d={rightAndStraightD}
 					fill="none"
 					stroke="#7BAB4F"
-					strokeWidth={20}
+					strokeWidth={scale.stroke}
 					strokeLinecap="round"
 					vectorEffect="non-scaling-stroke"
 				/>
@@ -392,7 +446,7 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 					d={bevelD}
 					fill="none"
 					stroke="#7BAB4F"
-					strokeWidth={20}
+					strokeWidth={scale.stroke}
 					strokeLinecap="round"
 					strokeLinejoin="round"
 					vectorEffect="non-scaling-stroke"
@@ -412,7 +466,7 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 						key={stationList[i].jy}
 						cx={p.x}
 						cy={p.y}
-						r={STATION_RADIUS}
+						r={scale.radius}
 						fill="#FFFFFF"
 						stroke="#1F2937"
 						strokeWidth={2}
@@ -425,7 +479,7 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 						<circle
 							cx={placements[activeIndex].x}
 							cy={placements[activeIndex].y}
-							r={STATION_RADIUS + 10}
+							r={scale.radius + scale.ringOffset}
 							fill="none"
 							stroke="#DC7970"
 							strokeWidth={3}
@@ -434,7 +488,7 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 						>
 							<animate
 								attributeName="r"
-								values={`${STATION_RADIUS + 2};${STATION_RADIUS + 6};${STATION_RADIUS + 2}`}
+								values={`${scale.radius + scale.pingInset};${scale.radius + scale.pingMax};${scale.radius + scale.pingInset}`}
 								dur="2s"
 								repeatCount="indefinite"
 							/>
@@ -468,6 +522,7 @@ export function LoopDiagram({ geometry, activeIndex, orientation }: Props): JSX.
 								placement={p}
 								isActive={i === activeIndex}
 								isPlaying={isPlaying && i === activeIndex}
+								scale={scale}
 								onSelect={() => setIndex(i)}
 							/>
 						</div>

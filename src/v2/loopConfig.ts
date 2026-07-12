@@ -25,18 +25,19 @@ export type LoopOrientation = "landscape" | "portrait";
  */
 export function buildDefaultGeometry(orientation: LoopOrientation): LoopGeometry {
 	if (orientation === "portrait") {
-		// 360 × 800 user units ≈ 1:2.22 aspect ratio, comfortable for
-		// phones in portrait orientation. We swap the dimensions of the
-		// landscape layout so the existing geometry helpers (which place
-		// bevels in the top-left, top-right and bottom-right corners of the
-		// rectangle) produce a tall shape with the same proportions of
-		// chamfered corner.
+		// Portrait (mobile): a chamfered rectangle that's tall enough to feel
+		// like a "loop" but short enough that, when `width: 100%`, it fits
+		// between the header (~60px), the mobile player row (~140px) and the
+		// bottom of the viewport on a typical phone (~700px left). The
+		// aspect ratio here (~0.75) intentionally trades off the very
+		// narrow look of the previous 240×640 layout so station labels
+		// have room to breathe without overflowing the viewport.
 		return buildLoopGeometry({
 			width: 360,
-			height: 800,
-			smallBevel: 40,
-			largeBevelTopLeft: 130,
-			largeBevelBottomRight: 150,
+			height: 480,
+			smallBevel: 28,
+			largeBevelTopLeft: 96,
+			largeBevelBottomRight: 110,
 		});
 	}
 

@@ -102,31 +102,34 @@ export default function NewApp(): JSX.Element {
 					- On narrow viewports (<640px) the loop is sized against the
 					  viewport height directly (see LoopDiagram's portrait
 					  containerStyle), so it fits in the available area without
-					  overflowing. The player then renders as a normal sibling
-					  block below — no floating overlay, no overlap.
+					  overflowing. The player now sits between the header and
+					  the diagram (rather than overlapping the loop, which is
+					  too cramped on a phone screen). It's a compact horizontal
+					  row so it doesn't push the loop out of the viewport.
 					All of this is CSS-driven (Tailwind's `sm:` breakpoint) so it
 					works even if the orientation hook returns a stale value during
 					hydration on slow mobile browsers. */}
 			<div
 				className={
 					orientation === "portrait"
-						? "flex flex-1 flex-col items-center gap-3 py-3 sm:relative sm:flex-row sm:items-center sm:justify-center sm:gap-0 sm:py-0"
+						? "flex flex-1 flex-col items-center gap-2 py-3 sm:relative sm:flex-row sm:items-center sm:justify-center sm:gap-0 sm:py-0"
 						: "relative flex flex-1 items-center justify-center"
 				}
 			>
+				{/* Mobile-only player row — sits between the header and the
+						diagram so the loop doesn't have to share screen real
+						estate with the floating overlay. `sm:hidden` keeps it
+						hidden on desktop. */}
+				<div className="w-full shrink-0 px-2 sm:hidden">
+					<InlinePlayer />
+				</div>
 				<LoopDiagram geometry={geometry} activeIndex={index} orientation={orientation} />
-				{/* Floating overlay — desktop only. On mobile the player renders
-						as a sibling block below the diagram (see below). */}
+				{/* Floating overlay — desktop only. On mobile the player is
+						already shown in the row above. */}
 				<div className="pointer-events-none absolute inset-0 hidden items-center justify-center p-3 sm:flex sm:p-8">
 					<div className="pointer-events-auto">
 						<InlinePlayer />
 					</div>
-				</div>
-				{/* Stacked player — mobile only. The `sm:hidden` keeps it
-						hidden on desktop where the floating overlay above already
-						shows the player. */}
-				<div className="w-full shrink-0 px-2 pb-3 sm:hidden">
-					<InlinePlayer />
 				</div>
 			</div>
 
