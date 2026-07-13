@@ -31,6 +31,61 @@ const sharedAudio = (() => {
 	return el;
 })();
 
+// `sharedAudio` is a module-level singleton, so the listeners we attach to it
+// (especially the `ended` handler that calls `usePlayer.getState().next()`)
+// must be installed exactly once. Without this guard, every component that
+// calls `useAudioEngine` would attach its own `ended` listener and a single
+// `audio.ended` event would advance the station index once per consumer —
+// e.g. `NewApp` + `InlinePlayer` would skip two stations on auto-advance.
+//
+// Each consumer registers its own setters through `registerEngineSetters`,
+// and the (single) installed listeners fan out to all registered setters.
+// The listeners themselves are only added once for the lifetime of the page.
+interface EngineSetters {
+	setCurrentTime: (t: number) => void
+	setDuration: (d: number) => void
+	setIsReady: (r: boolean) => void
+	setHasError: (e: boolean) => void
+}
+
+const engineSettersList = new Set<EngineSetters>();
+let engineListenersInstalled = false;
+
+function installEngineListenersOnce(): void {
+	if (!sharedAudio || engineListenersInstalled)
+		return;
+	sharedAudio.addEventListener("timeupdate", () => {
+		for (const s of engineSettersList)
+			s.setCurrentTime(sharedAudio.currentTime);
+	});
+	sharedAudio.addEventListener("loadedmetadata", () => {
+		const d = Number.isFinite(sharedAudio.duration) ? sharedAudio.duration : 0;
+		for (const s of engineSettersList)
+			s.setDuration(d);
+	});
+	sharedAudio.addEventListener("durationchange", () => {
+		const d = Number.isFinite(sharedAudio.duration) ? sharedAudio.duration : 0;
+		for (const s of engineSettersList)
+			s.setDuration(d);
+	});
+	sharedAudio.addEventListener("canplay", () => {
+		for (const s of engineSettersList)
+			s.setIsReady(true);
+	});
+	// The `ended` handler advances to the next station. This is the handler
+	// that was being attached multiple times (once per `useAudioEngine`
+	// consumer) before the singleton guard was added — which is what caused
+	// auto-advance to skip several stations instead of going to the next one.
+	sharedAudio.addEventListener("ended", () => {
+		usePlayer.getState().next();
+	});
+	sharedAudio.addEventListener("error", () => {
+		for (const s of engineSettersList)
+			s.setHasError(true);
+	});
+	engineListenersInstalled = true;
+}
+
 export function useAudioEngine(): AudioApi {
 	const index = usePlayer(s => s.index);
 	const direction = usePlayer(s => s.direction);
@@ -43,14 +98,32 @@ export function useAudioEngine(): AudioApi {
 	const [hasError, setHasError] = useState(false);
 
 	const cacheKey = `${index}:${direction}`;
-	const lastKey = useRef<string | null>(null);
+	const lastKeyRef = useRef<string | null>(null);
+
+	// Install the singleton `sharedAudio` listeners on first mount and
+	// register this consumer's setters so playback events drive our React
+	// state. The listeners themselves are only added once for the lifetime
+	// of the page — see the comment on `installEngineListenersOnce` above.
+	useEffect(() => {
+		installEngineListenersOnce();
+		const setters: EngineSetters = {
+			setCurrentTime,
+			setDuration,
+			setIsReady,
+			setHasError,
+		};
+		engineSettersList.add(setters);
+		return () => {
+			engineSettersList.delete(setters);
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!sharedAudio)
 			return;
-		if (lastKey.current === cacheKey)
+		if (lastKeyRef.current === cacheKey)
 			return;
-		lastKey.current = cacheKey;
+		lastKeyRef.current = cacheKey;
 		setIsReady(false);
 		setHasError(false);
 		setCurrentTime(0);
@@ -67,32 +140,6 @@ export function useAudioEngine(): AudioApi {
 		sharedAudio.src = src;
 		sharedAudio.load();
 	}, [cacheKey, index, direction]);
-
-	useEffect(() => {
-		if (!sharedAudio)
-			return;
-		const onTime = () => setCurrentTime(sharedAudio.currentTime);
-		const onMeta = () =>
-			setDuration(Number.isFinite(sharedAudio.duration) ? sharedAudio.duration : 0);
-		const onCanPlay = () => setIsReady(true);
-		const onEnd = () => usePlayer.getState().next();
-		const onError = () => setHasError(true);
-
-		sharedAudio.addEventListener("timeupdate", onTime);
-		sharedAudio.addEventListener("loadedmetadata", onMeta);
-		sharedAudio.addEventListener("durationchange", onMeta);
-		sharedAudio.addEventListener("canplay", onCanPlay);
-		sharedAudio.addEventListener("ended", onEnd);
-		sharedAudio.addEventListener("error", onError);
-		return () => {
-			sharedAudio.removeEventListener("timeupdate", onTime);
-			sharedAudio.removeEventListener("loadedmetadata", onMeta);
-			sharedAudio.removeEventListener("durationchange", onMeta);
-			sharedAudio.removeEventListener("canplay", onCanPlay);
-			sharedAudio.removeEventListener("ended", onEnd);
-			sharedAudio.removeEventListener("error", onError);
-		};
-	}, []);
 
 	useEffect(() => {
 		if (!sharedAudio)

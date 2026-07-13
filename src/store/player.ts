@@ -29,8 +29,22 @@ export const usePlayer = create<PlayerState>((set, get) => ({
 	toggleDirection: () => set({ direction: get().direction === "outer" ? "inner" : "outer" }),
 	setPlaying: p => set({ isPlaying: p }),
 	togglePlaying: () => set({ isPlaying: !get().isPlaying }),
-	next: () => set({ index: normalizeIndex(get().index + 1) }),
-	prev: () => set({ index: normalizeIndex(get().index - 1) }),
+	// `next` / `prev` follow the *current* loop direction so the player walks
+	// the Yamanote line the way the trains actually do:
+	//   - outer (clockwise):          JY01 → JY02 → ... → JY30 → JY01
+	//   - inner (counter-clockwise):  JY01 → JY30 → JY29 → ... → JY02 → JY01
+	// Previously both directions just stepped `+1`, which made the inner
+	// loop play stations in the wrong (clockwise) order.
+	next: () => {
+		const { direction, index } = get();
+		const step = direction === "outer" ? 1 : -1;
+		set({ index: normalizeIndex(index + step) });
+	},
+	prev: () => {
+		const { direction, index } = get();
+		const step = direction === "outer" ? -1 : 1;
+		set({ index: normalizeIndex(index + step) });
+	},
 }));
 
 // Convenience selectors
