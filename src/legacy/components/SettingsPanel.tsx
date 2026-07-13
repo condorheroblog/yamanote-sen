@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 import { applyThemeClass, useSettings } from "../../store/settings";
 import { CloseIcon, MoonIcon, SunIcon } from "./Icons";
 
@@ -20,9 +21,7 @@ export function SettingsPanel({ open, onClose }: Props) {
 	}, [theme]);
 
 	useEffect(() => {
-		void import("../../i18n").then((m) => {
-			m.default.changeLanguage(lang);
-		});
+		i18n.changeLanguage(lang);
 	}, [lang]);
 
 	if (!open)
