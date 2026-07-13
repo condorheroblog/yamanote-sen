@@ -47,3 +47,26 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Hide the offline/install chip when the app is already running as an
+   installed PWA. The component itself adds the `pwa-hide-when-installed`
+   class to its root; we use three display-mode media queries to cover
+   Chromium (standalone) and iOS Safari (fullscreen / minimal-ui). */
+.pwa-hide-when-installed {
+  display: contents;
+}
+@media (display-mode: standalone) {
+  .pwa-hide-when-installed {
+    display: none !important;
+  }
+}
+@media (display-mode: fullscreen) {
+  .pwa-hide-when-installed {
+    display: none !important;
+  }
+}
+@media (display-mode: minimal-ui) {
+  .pwa-hide-when-installed {
+    display: none !important;
+  }
+}

@@ -56,7 +56,15 @@ export function useAudioEngine(): AudioApi {
 		setCurrentTime(0);
 		setDuration(0);
 		sharedAudio.pause();
-		sharedAudio.src = audioSrc(index, direction);
+		const src = audioSrc(index, direction);
+		// 触发 SW runtime cache(若未缓存);保证下次离线可用
+		if ("caches" in globalThis) {
+			void caches.match(src).then((hit) => {
+				if (!hit)
+					void fetch(src);
+			});
+		}
+		sharedAudio.src = src;
 		sharedAudio.load();
 	}, [cacheKey, index, direction]);
 
