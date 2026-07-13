@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { codeInspectorPlugin } from "code-inspector-plugin";
 import { defineConfig } from "vite";
+import openGraph from "vite-plugin-open-graph";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
@@ -13,6 +14,26 @@ export default defineConfig({
 		codeInspectorPlugin({
 			bundler: "vite",
 			// hideConsole: true,
+		}),
+		openGraph({
+			basic: {
+				title: "Yamanote Sen",
+				type: "website",
+				url: "https://condorheroblog.github.io/yamanote-sen/",
+				siteName: "Yamanote Sen",
+				description:
+					"A virtual ride on Tokyo's Yamanote Line — listen to every station's melody, chime, announcement and ambient sound as you loop the line at 2× speed.",
+				image: "https://condorheroblog.github.io/yamanote-sen/og-image.jpg",
+				locale: "en_US",
+			},
+			twitter: {
+				card: "summary_large_image",
+				title: "Yamanote Sen",
+				description:
+					"A virtual ride on Tokyo's Yamanote Line — listen to every station's melody, chime, announcement and ambient sound as you loop the line at 2× speed.",
+				image: "https://condorheroblog.github.io/yamanote-sen/og-image.jpg",
+				imageAlt: "Yamanote Sen — Tokyo's Yamanote Line virtual ride",
+			},
 		}),
 		VitePWA({
 			base: "/yamanote-sen/",
