@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/yamanote-sen/sw.js', { scope: '/yamanote-sen/' })})}
