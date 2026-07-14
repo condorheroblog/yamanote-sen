@@ -15,6 +15,7 @@
 
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // Minimal shape of the deferred install prompt exposed by some browsers.
 interface BeforeInstallPromptEvent extends Event {
@@ -67,6 +68,7 @@ function Toast({ message, onDone }: { message: string, onDone: () => void }): JS
 }
 
 export function InstallButton(): JSX.Element | null {
+	const { t } = useTranslation();
 	const { prompt: deferredPrompt, installed } = useBeforeInstallPrompt();
 	const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 	const [toast, setToast] = useState<string | null>(null);
@@ -83,16 +85,16 @@ export function InstallButton(): JSX.Element | null {
 				await deferredPrompt.prompt();
 				const choice = await deferredPrompt.userChoice;
 				if (choice.outcome === "accepted")
-					setToast("正在准备安装…");
+					setToast(t("installToastPreparing"));
 				else
-					setToast("已取消安装");
+					setToast(t("installToastCancelled"));
 			}
 			catch {
-				setToast("请使用浏览器菜单中的“添加到主屏幕”完成安装。");
+				setToast(t("installToastFallback"));
 			}
 		}
 		else {
-			setToast("请使用浏览器菜单中的“添加到主屏幕”完成安装。");
+			setToast(t("installToastFallback"));
 		}
 	}
 
@@ -100,8 +102,8 @@ export function InstallButton(): JSX.Element | null {
 		<div className="pwa-hide-when-installed">
 			<button
 				type="button"
-				title="可安装离线使用"
-				aria-label="可安装离线使用"
+				title={t("installAriaLabel")}
+				aria-label={t("installAriaLabel")}
 				onClick={() => setDialogOpen(true)}
 				className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/90 text-white shadow-md backdrop-blur transition hover:bg-emerald-500 active:scale-95"
 			>
@@ -134,25 +136,24 @@ export function InstallButton(): JSX.Element | null {
 									id="install-dialog-title"
 									className="text-sm font-semibold text-zinc-800 dark:text-zinc-100"
 								>
-									安装离线功能
+									{t("installDialogTitle")}
 								</h2>
 								<button
 									type="button"
 									onClick={() => setDialogOpen(false)}
 									className="text-zinc-500 transition hover:text-zinc-700 dark:hover:text-zinc-300"
-									aria-label="关闭"
+									aria-label={t("close")}
 								>
 									✕
 								</button>
 							</div>
 							<p className="mt-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300">
-								安装后可从桌面图标离线启动并播放已听过的音频，
-								无需联网即可继续体验山手线之旅。
+								{t("installDialogBody")}
 							</p>
 							<ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-zinc-600 dark:text-zinc-300">
-								<li>使用浏览器菜单中的“添加到主屏幕”即可完成安装</li>
-								<li>听过的音频会被自动缓存,无需手动下载</li>
-								<li>如不再需要，可在浏览器应用管理中随时卸载</li>
+								<li>{t("installDialogHint1")}</li>
+								<li>{t("installDialogHint2")}</li>
+								<li>{t("installDialogHint3")}</li>
 							</ul>
 							<div className="mt-5 flex justify-end gap-2">
 								<button
@@ -160,7 +161,7 @@ export function InstallButton(): JSX.Element | null {
 									onClick={() => setDialogOpen(false)}
 									className="rounded-lg bg-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 transition active:scale-[0.97] hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
 								>
-									取消
+									{t("installDialogCancel")}
 								</button>
 								<button
 									type="button"
@@ -169,7 +170,7 @@ export function InstallButton(): JSX.Element | null {
 									}}
 									className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-emerald-600"
 								>
-									确定安装
+									{t("installDialogConfirm")}
 								</button>
 							</div>
 						</div>
@@ -188,6 +189,7 @@ export function InstallButton(): JSX.Element | null {
 const HINT_DISMISSED_KEY = "yamanote-sen.install-hint-dismissed";
 
 export function InstallHint(): JSX.Element | null {
+	const { t } = useTranslation();
 	const [visible, setVisible] = useState<boolean>(false);
 
 	useEffect(() => {
@@ -227,8 +229,8 @@ export function InstallHint(): JSX.Element | null {
 				<button
 					type="button"
 					onClick={dismiss}
-					aria-label="安装离线使用"
-					title="可安装离线使用"
+					aria-label={t("installAriaLabel")}
+					title={t("installAriaLabel")}
 					className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/90 text-white shadow-sm transition hover:bg-emerald-500 active:scale-95"
 				>
 					<svg
@@ -247,11 +249,11 @@ export function InstallHint(): JSX.Element | null {
 						<path d="M22 22l-3-3" />
 					</svg>
 				</button>
-				<span className="whitespace-nowrap pr-1">可安装离线使用</span>
+				<span className="whitespace-nowrap pr-1">{t("installHintText")}</span>
 				<button
 					type="button"
 					onClick={dismiss}
-					aria-label="关闭提示"
+					aria-label={t("installCloseHintAria")}
 					className="rounded-full p-0.5 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-300"
 				>
 					✕
