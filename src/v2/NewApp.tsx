@@ -8,7 +8,7 @@ import { AboutPanel } from "../legacy/components/AboutPanel";
 import { SettingsPanel } from "../legacy/components/SettingsPanel";
 import { useAudioEngine } from "../lib/audio";
 import { usePlayer } from "../store/player";
-import { GearIcon, InfoIcon } from "./icons";
+import { GearIcon, GitHubIcon, InfoIcon } from "./icons";
 import { InlinePlayer } from "./InlinePlayer";
 import { buildDefaultGeometry } from "./loopConfig";
 import { LoopDiagram } from "./LoopDiagram";
@@ -77,6 +77,15 @@ export default function NewApp(): JSX.Element {
 					<span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Yamanote-Sen</span>
 				</div>
 				<div className="flex items-center gap-1">
+					<a
+						href="https://github.com/condorheroblog/yamanote-sen/"
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label="GitHub repository"
+						className="rounded-full p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+					>
+						<GitHubIcon size={20} />
+					</a>
 					<button
 						type="button"
 						onClick={() => setSettingsOpen(true)}

@@ -3,6 +3,16 @@
 	"type": "module",
 	"version": "0.0.0",
 	"private": true,
+	"author": "Condor Hero",
+	"license": "MIT",
+	"homepage": "https://github.com/condorheroblog/yamanote-sen/blob/main/README.md",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/condorheroblog/yamanote-sen.git"
+	},
+	"bugs": {
+		"url": "https://github.com/condorheroblog/yamanote-sen/issues"
+	},
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
